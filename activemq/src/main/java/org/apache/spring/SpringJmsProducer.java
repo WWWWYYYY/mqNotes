@@ -22,6 +22,8 @@ import javax.jms.*;
  * 2、如果消息时字节类型则使用 BytesMessage
  * 3、如果消息时对象类型则使用 MapMessage、ObjectMessage、StreamMessage 、TextMessage（json字符串）
  * 常用类型：不论是字符串还是对象类型都是首选 TextMessage 类型，如果是字节类型都是选 BytesMessage，MapMessage 使用次数比较少，其他类型使用次数更少
+ *
+ * 消息大小应该控制在1M以内。
  */
 public class SpringJmsProducer {
     public static final String QUEUE_NAME = "test.queue";

@@ -2,17 +2,17 @@
 ActiveMQ中，61616为服务端口，8161为管理控制台端口。
 项目介绍：
 1、activemq子模块：activemq 
-①、mq基本使用
-添加依赖：
+①、mq基本使用开发步骤：
+（1）、添加依赖：
       <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-all</artifactId>
             <version>5.8.0</version>
       </dependency>
-消息消费者：参考org.apache.activemq.JmsConsumer
-消息生产者：参考org.apache.activemq.JmsProducer
-②、mq集成spring
-添加依赖：
+（2）、消息消费者：参考org.apache.activemq.JmsConsumer
+（3）、消息生产者：参考org.apache.activemq.JmsProducer
+②、mq集成spring开发步骤：
+（1）、添加依赖：
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jms</artifactId>
@@ -23,4 +23,7 @@ ActiveMQ中，61616为服务端口，8161为管理控制台端口。
             <artifactId>xbean-spring</artifactId>
             <version>3.16</version>
         </dependency>
+（2）、编辑application-c.xml、application-p.xml 配置文件
+（3）、编辑org.apache.spring.SpringJmsProducer.java和org.apache.spring.SpringJmsConsumer.java以及相关的监听类
+
 
