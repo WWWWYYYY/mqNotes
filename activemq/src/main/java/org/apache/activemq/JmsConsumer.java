@@ -51,7 +51,7 @@ DUPS_OK_ACKNOWLEDGE ： 指定消息提供者在消息接收者没有确认发�
             TextMessage message = (TextMessage) consumer.receive();//消息队列没有消息时则阻塞
             System.out.println("接收到信息：" + message.getText());
 
-            /*(异步方式接收信息)
+            /*(异步方式接收信息)推荐
             consumer.setMessageListener(new MessageListener() {
                 @Override
                 public void onMessage(Message message) {

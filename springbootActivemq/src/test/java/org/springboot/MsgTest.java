@@ -18,10 +18,12 @@ public class MsgTest {
     @Autowired
     private ProducerTopic producerTopic;
 
+    //发送p2p消息
     @Test
     public void test(){
         producerQueue.sendMsg("abc");
     }
+    //发送topic 消息
     @Test
     public void test2(){
         producerTopic.sendMsg("abc");

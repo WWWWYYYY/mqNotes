@@ -11,8 +11,6 @@ import org.springframework.jms.config.DefaultJmsListenerContainerFactory;
 import org.springframework.jms.config.JmsListenerContainerFactory;
 
 import javax.jms.ConnectionFactory;
-import javax.jms.Queue;
-import javax.jms.Topic;
 
 @Configuration
 @EnableJms
@@ -37,9 +35,10 @@ public class ActiveMqConfig {
     }
     @Bean("jmsQueueListenerContainerFactory")
     public JmsListenerContainerFactory<?> jmsListenerContainerQueue(ActiveMQConnectionFactory connectionFactory) {
-        DefaultJmsListenerContainerFactory bean = new DefaultJmsListenerContainerFactory();
-        bean.setConnectionFactory(connectionFactory);
-        return bean;
+        DefaultJmsListenerContainerFactory factory = new DefaultJmsListenerContainerFactory();
+        factory.setConnectionFactory(connectionFactory);
+        factory.setPubSubDomain(false);//默认false
+        return factory;
     }
     @Bean("jmsTopicListenerContainerFactory")
     public JmsListenerContainerFactory jmsTopicListenerContainerFactory(ConnectionFactory connectionFactory){

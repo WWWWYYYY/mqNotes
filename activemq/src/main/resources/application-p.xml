@@ -43,11 +43,5 @@
 
 
 
-    <!--接收消费者应答的监听器
-    <jms:listener-container destination-type="queue" container-type="default"
-                            connection-factory="connectionFactory" acknowledge="auto">
-        <jms:listener destination="tempqueue" ref="getResponse"></jms:listener>
-    </jms:listener-container>
--->
 
 </beans>

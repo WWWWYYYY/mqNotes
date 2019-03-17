@@ -55,4 +55,10 @@
     <bean id="queueReceiver1" class="org.apache.spring.queue.QueueReceiver1"/>
     <bean id="queueReceiver2" class="org.apache.spring.queue.QueueReceiver2"/>
 
+    <bean id="jmsConsumerQueueTemplate" class="org.springframework.jms.core.JmsTemplate">
+        <constructor-arg ref="connectionFactory"></constructor-arg>
+        <!-- 队列模式-->
+        <property name="pubSubDomain" value="false"></property>
+    </bean>
+
 </beans>

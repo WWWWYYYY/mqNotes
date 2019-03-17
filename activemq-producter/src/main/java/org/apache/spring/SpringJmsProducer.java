@@ -26,7 +26,7 @@ public class SpringJmsProducer {
                 System.out.println("发送信息1：" + message);
                 TextMessage msg = session.createTextMessage(message);
 
-                //配置一个信息消费者回复消息
+                //配置 信息消费者回复消息
                 Destination tempDst = session.createTemporaryQueue();
                 MessageConsumer responseConsumer = session.createConsumer(tempDst);
                 responseConsumer.setMessageListener(getResponse);
