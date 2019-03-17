@@ -12,6 +12,7 @@
         <module>activemq</module>
         <module>activemq-consumer</module>
         <module>activemq-producter</module>
+        <module>activemq-asyncApp</module>
     </modules>
 
 
