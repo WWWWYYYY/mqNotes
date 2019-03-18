@@ -263,14 +263,33 @@ MirroredQueue: Broker会把发送到某一个队列上的所有消息转发到�
        </destinationInterceptors>
 </broker>
 
-十四、多个消费者集群消费同一个消息队列的消息
-场景：某个消息队列中有10个消息，消费者A集群收到10个消息，并且消费者B集群收到同样的10个消息；
-集群A有两台消费者则A1收到5个消息，A2收到5个消息；集群B就一台消费者则B1收到10个消息
+十四、多个消费者集群消费同一个消息队列的消息；翻译过来就是一个消息要发给多个模块，而每个模块都是集群，即每个模块都有 同一个队列多个消费者
+场景：某个消息队列中有10个消息，消费者A集群收到10个消息，并且消费者B集群收到同样的10个消息；集群A有两台消费者则A1收到5个消息，A2收到5个消息；集群B就一台消费者则B1收到10个消息
 解决方案一：虚拟主题
-开发步骤：
+开发步骤(需要更改的地方)：
+    1、生产者目的地定义：具体参考 org.apache.virtualtopic.VtProducer.java
+        destination = session.createTopic("VirtualTopic.vtgroup");
+    2、集群A消费者目的地定义：具体参考org.apache.virtualtopic.VtConsumerA.java 和org.apache.virtualtopic.VtConsumerA2.java
+        destination = session.createQueue("Consumer.A.VirtualTopic.vtgroup");//Consumer.开头是固定的，A表示某一个集群的代号
+       集群B消费者目的地定义：具体参考org.apache.virtualtopic.VtConsumerB.java
+        destination = session.createQueue("Consumer.B.VirtualTopic.vtgroup");//Consumer.开头是固定的，B表示某一个集群的代号
+       集群C消费者目的地定义：具体参考org.apache.virtualtopic.VtConsumerc.java
+        destination = session.createQueue("Consumer.C.VirtualTopic.vtgroup");//Consumer.开头是固定的，C表示某一个集群的代号
+       
     
 解决方案二：组合Destinations
-开发步骤：
+开发步骤(需要更改的地方)：
+    1、生产者目的地定义：具体参考 org.apache.compositedest.CdProducer.java
+        destination = session.createQueue("cd.queue,topic://cd.mark,otherqueue");
+    2、消费者目的地定义：
+       集群otherqueue消费者目的地定义：具体参考 org.apache.compositedest.CdConsumerOtherQueue.java
+        destination = session.createQueue("otherqueue");
+       集群cd.queue消费者目的地定义：具体参考 org.apache.compositedest.CdConsumerQueueA 和org.apache.compositedest.CdConsumerQueueB
+        destination = session.createQueue("cd.queue");
+       集群otopic://cd.mark消费者目的地定义：具体参考 org.apache.compositedest.CdConsumerTopicA.java
+        destination = session.createTopic("cd.mark");
+        
+ps:多个消费者集群消费同一个消息队列的消息是常见的场景，以上两种方案都可以，方案二比较好理解一些，方案一队列名称需要有一定的规范
 
 
 
