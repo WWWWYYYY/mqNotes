@@ -13,6 +13,7 @@
         <module>activemq-consumer</module>
         <module>activemq-producter</module>
         <module>activemq-asyncApp</module>
+        <module>activemq-delayOrder</module>
     </modules>
 
 

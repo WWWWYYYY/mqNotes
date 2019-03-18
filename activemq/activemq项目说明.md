@@ -288,8 +288,33 @@ MirroredQueue: Broker会把发送到某一个队列上的所有消息转发到�
         destination = session.createQueue("cd.queue");
        集群otopic://cd.mark消费者目的地定义：具体参考 org.apache.compositedest.CdConsumerTopicA.java
         destination = session.createTopic("cd.mark");
+    ps:多个消费者集群消费同一个消息队列的消息是常见的场景，以上两种方案都可以，方案二比较好理解一些，方案一队列名称需要有一定的规范    
         
-ps:多个消费者集群消费同一个消息队列的消息是常见的场景，以上两种方案都可以，方案二比较好理解一些，方案一队列名称需要有一定的规范
+十五、实战：限时订单
+场景：下订单后长时间未支付，清除未支付的过期的订单
+方案一、传统做法：定时扫描订单数据库表，判断哪些订单记录过期则修改其标志位或者清除
+缺点：清除不够及时，浪费性能
+方案二、使用java中延迟队列DelayQueue
+    在单机环境下能够很好解决延迟订单问题：比如服务器正常运行时，对超时的订单进行修改数据库操作，如果服务器重启，重新将未超时的订单加载到内存，超时的订单直接修改状态。
+    但是在集群环境下；重启之后，重新加载未超时的延迟订单就会和其他服务器重复。最终导致一个订单进行了多次数据库操作。
+    为了解决这个重启后不加载重复的延迟订单，则应该为延迟订单表新增一个ip字段，让各自服务器处理各自的延迟订单；但是这样做又会引出新的问题；某一台服务器死机了后一直重启不了，
+    则死机的服务器对应的延迟订单就没办法操作了。此时需要进行人工处理，执行sql:update 延迟订单表 set ip=某个在线服务器的ip where ip=死机服务器的ip。即使这样做还是不能从根本上解决问题。
+    并且对于应用的伸缩性和拓展性都收到了限制。总而言之方案二在复杂的环境下也是不可行的。
+方案三、使用mq的延迟队列
+步骤1：修改配置文件(activemq.xml)，增加延迟和定时投递支持 schedulerSupport="true"
+<broker xmlns="http://activemq.apache.org/schema/core" brokerName="localhost" dataDirectory="${activemq.data}" schedulerSupport="true">
+步骤2：编辑生产者cn.enjoyedu.service.mq.MqProducer.java
+主要在于发送信息时设置延迟发送：
+    Message message = session.createTextMessage(txtMsg);//创建消息
+    message.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY, expireTime);//设置延迟发送消息的属性
+步骤3：编辑消费者cn.enjoyedu.service.mq.MqConsume.java 正常的消息消费者
+
+
+
+
+
+
+
 
 
 
@@ -298,6 +323,6 @@ ps:多个消费者集群消费同一个消息队列的消息是常见的场景�
 
 相关问题：
 1、activemq集群情况下无法保证消息的顺序执行，需要开发人员业务上的设计来保证消息的顺序
-2、如果消息持久化在数据库，可以存放的消息要比持久化在本地文件的消息数量要多，如果消息持久化到本地文件则设置了最大存放消息数量。当消息堆积太多了就要再起一个消息消费者服务。
+2、如果消息持久化在数据库，可以存放的消息要比持久化在本地文件的消息数量要多，如果消息持久化到本地文件则设置了最大存放消息数量。当消息堆积太多了就要再起一个消息消费者服务。或者让消费使用阻塞模式接收消息。
 3、消息开启事务、持久化后，消息服务器的性能要下降2-10倍
 
