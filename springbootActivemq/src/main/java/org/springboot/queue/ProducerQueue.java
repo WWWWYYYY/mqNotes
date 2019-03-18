@@ -1,18 +1,13 @@
 package org.springboot.queue;
 
 import org.apache.activemq.command.ActiveMQQueue;
-import org.apache.activemq.command.ActiveMQTopic;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jms.annotation.JmsListener;
 import org.springframework.jms.core.JmsMessagingTemplate;
 import org.springframework.jms.core.JmsTemplate;
-import org.springframework.jms.core.MessageCreator;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.Session;
-import javax.jms.TextMessage;
 
 @Service
 public class ProducerQueue {
@@ -39,5 +34,10 @@ public class ProducerQueue {
             }
         });
         */
+    }
+
+    @JmsListener(destination = "springboot.replyto.queue")
+    public void receiveMsg(String msg){
+        System.out.println("生产者接收到信息："+msg);
     }
 }
