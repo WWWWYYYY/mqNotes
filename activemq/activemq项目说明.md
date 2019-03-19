@@ -312,14 +312,110 @@ MirroredQueue: Broker会把发送到某一个队列上的所有消息转发到�
 
 
 
+十六、消息服务器集群 高可用
+1、master-slave主从模式（不支持消息负载，并且activemq5.8以及之前版本才支持，性能不高）
+（1）共享文件形式 如果使用kahadb意味着读个消息服务端搭建在同一台服务器上，是不可行的。如果硬要使用共享文件的形式必须使用分布式文件系统，例如hdfs、fastdfs；使用文件形式相对麻烦
+（2）共享数据库形式 参考 七、activemq持久化机制
+   开发步骤：主、从消息服务器都要进行操作①
+   ①修改 activemq.xml
+    一、在broker元素上添加useJmx="true"
+        <broker xmlns="http://activemq.apache.org/schema/core" brokerName="localhost" dataDirectory="${activemq.data}" useJmx="true">
+    二、替换persistenceAdapter为jdbc方式
+    <persistenceAdapter>  
+        <jdbcPersistenceAdapter dataDirectory="${activemq.data}" dataSource="#mysql-ds" createTablesOnStartup="false" useDatabaseLock="true"/>  
+    </persistenceAdapter>
+    三、添加数据源
+    <bean id="mysql-ds" class="org.apache.commons.dbcp2.BasicDataSource" destroy-method="close">
+        <property name="driverClassName" value="com.mysql.jdbc.Driver"/>
+        <property name="url" value="jdbc:mysql://localhost:3306/activemq?relaxAutoCommit=true&amp;useUnicode=true&amp;characterEncoding=utf-8&amp;serverTimezone=UTC"/>
+        <property name="username" value="root"/>
+        <property name="password" value=""/>
+        <property name="poolPreparedStatements" value="true"/>
+    </bean>
+   ②客户端访问连接改为 
+   private static final String BROKEURL="failover:(tcp://localhost:61616,tcp://localhost:61617,tcp://localhost:61618)?randomize=false"
+   其中默认情况下消息发送到第一个地址,randomize=false表示发送或者接收消息连接到主消息服务器
+   
+（3）zookeeper+levelDB：（5.9以及之后版本支持）推荐使用
+Leveldb是一个google实现的非常高效的kv数据库，目前的版本1.2能够支持billion级别的数据量了。 在这个数量级别下还有着非常高的性能，采用单进程的服务，性能非常之高，在一台4核Q6600的CPU机器上，
+每秒钟写数据超过40w，而随机读的性能每秒钟超过10w。由此可以看出，具有很高的随机写，顺序读/写性能，但是随机读的性能很一般，也就是说，LevelDB很适合应用在查询较少，而写很多的场景。
+LevelDB应用了LSM (Log Structured Merge) 策略，通过一种类似于归并排序的方式高效地将更新迁移到磁盘，降低索引插入开销。
 
+开发步骤：Leveldb是activemq内置提供，因此不需要安装，只需配置activemq.xml文件即可
+   ①修改 activemq.xml
+    <persistenceAdapter> 
+      <replicatedLevelDB 
+        directory="${activemq.data}/leveldb" 
+        replicas="3" 
+        bind="tcp://0.0.0.0:62623" 
+        zkAddress="127.0.0.1:2181" 
+        hostname="localhost" 
+        zkPath="/activemq/leveldb-stores"/> 
+    </persistenceAdapter>
+•	directory：持久化数据存放地址
+•	replicas：集群中节点的个数
+•	bind：集群通信端口
+•	zkAddress：ZooKeeper集群地址 zkAddress="192.168.1.191:2181,192.168.1.192:2181,192.168.1.193:2181"
+•	hostname：当前服务器的IP地址，如果集群启动的时候报未知主机名错误，那么就需要配置主机名到IP地址的映射关系。
+•	zkPath：ZooKeeper数据挂载点
+   ②客户端访问连接改为 
+    private static final String BROKEURL="failover:(tcp://localhost:61616,tcp://localhost:61617,tcp://localhost:61618)?randomize=false"
+    其中默认情况下消息发送到第一个地址,randomize=false表示发送或者接收消息连接到主消息服务器
+    
 
+2、broker-cluster(支持消息负载，会在多个服务器上进行消息路由，保证了activemq服务的伸缩性但不保证消息的可靠性)
+（1）Static Discovery静态发现 集群 
+    场景：有4台服务器10.211.55.2、10.211.55.6、10.211.55.7、10.211.55.8
+        10.211.55.2、10.211.55.6用于接收生产者消息
+        10.211.55.7、10.211.55.8用于给消费者发送消息
+    Static Discovery静态发现的原理：
+        生产者发送消息到10.211.55.2，会判断10.211.55.7、10.211.55.8两台服务器是否都是活跃状态，7、8两台服务是否都有消费者在等待消息，
+        如果只有7是活跃的则服务器10.211.55.7先充当10.211.55.2的消费者，并把消息存储到10.211.55.7本地后再充当正在消费者的生产者，最后把消息发给真正的消费者。
+        如果7和8都是活跃的状态，则消息平均分发。
+    开发步骤：具体参考《20181202_1、消息中间件概述和ActiveMQ_09.vep》视频
+    ①配置文件配置
+        4台服务器使用的都是kahadb，并且10.211.55.2、10.211.55.6的activemq.xml不需要额外的配置
+        10.211.55.7、10.211.55.8的activemq.xml需要在broker元素下添加
+                <networkConnectors> 
+                      <networkConnector uri="static:(tcp://10.211.55.2:61616,tcp://10.211.55.6:61616)" duplex="true"/>
+                      <!--默认NetworkConnector在需要转发消息时是单向连接的。当duplex=true时，就变成了双向连接，这时配置在broker2端的指向broker1的duplex networkConnector，相当于即配置了
+                          broker2到broker1的网络连接，也配置了broker1到broker2的网络连接。-->
+                </networkConnectors>
+        配置完后先后启动10.211.55.2、10.211.55.6、10.211.55.7、10.211.55.8上activemq服务
+    ②java代码需要修改的地方：
+        //生产者 参考：org.apache.brokercluster.producer.BcPCProducer.java
+        private static final String BROKEURL = "failover:(tcp://10.211.55.2:61616,tcp://10.211.55.6:61616)?randomize=false";
+        //消费者:org.apache.brokercluster.consumer.BcOCConsumer.java
+        private static final String BROKEURL = "failover:(tcp://10.211.55.7:61616,tcp://10.211.55.8:61616)?randomize=false";
+    
+    ps：开发过程中不要去监听10.211.55.2、10.211.55.6上的消息;消息队列集群练习在单机情况下不好操作，启动多个activemq服务端总是提示端口被占用，放到多个虚拟机下会好一些。
+    实际情况向10.211.55.2服务器发送消息时，10.211.55.2、0.211.55.7、0.211.55.8三台服务器可以作为消费者，而10.211.55.6是收不到消息的
+                   向10.211.55.6服务器发送消息时，10.211.55.6、0.211.55.7、0.211.55.8三台服务器可以作为消费者，而10.211.55.2是收不到消息的
+                   可分别登入http://10.211.55.2/admin 和http://10.211.55.6查看得知10.211.55.2和10.211.55.6消息是互相不可见的。
+    
+    
+（2）Dynamic Discovery动态发现 集群
+    开发步骤:
+        ①配置文件修改：activemq.xml需要在
+        broker元素下添加
+        <networkConnectors> 
+              <networkConnector uri="multicast://default" />
+        </networkConnectors>
+        broker》transportConnectors将
+        <transportConnector name="openwire" uri="tcp://0.0.0.0:61616?maximumConnections=1000&amp;wireFormat.maxFrameSize=104857600"/>
+        修改为
+         <transportConnector name="openwire" uri="tcp://0.0.0.0:61616?maximumConnections=1000&amp;wireFormat.maxFrameSize=104857600"
+         discoveryUri="multicast://default"/>       
+        ②java代码修改
+            //生产者地址
+            private static final String BROKEURL = "failover:(tcp://10.211.55.2:61616,tcp://10.211.55.6:61616)?randomize=false";
+            //消费者地址
+            private static final String BROKEURL = "failover:(tcp://10.211.55.2:61616,tcp://10.211.55.6:61616)?randomize=false";
+        
+        ps：动态发现是怎么将不同服务器上的activemq服务融合在一起的？
 
-
-
-
-
-
+集群使用总结：activemq broker-cluster集群，使得消息可靠性变得很差，如果要保证消息可靠性不推荐使用activemq broker-cluster集群，只要使用activemq master-slave模式，但是activemq主从模式下，没有使用集群负载情况下最高并发量在6000左右
+因此为了保证消息可靠性并且并发量超出6000，应该选择rabbitmq或者rocketmq或者kafka。
 
 相关问题：
 1、activemq集群情况下无法保证消息的顺序执行，需要开发人员业务上的设计来保证消息的顺序

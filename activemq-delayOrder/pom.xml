@@ -190,7 +190,6 @@
 
     </dependencies>
     <build>
-        <finalName>delayOrder</finalName>
         <resources>
             <resource>
                 <directory>${basedir}/src/main/java</directory>

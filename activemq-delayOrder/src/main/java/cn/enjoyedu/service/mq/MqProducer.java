@@ -53,7 +53,7 @@ public class MqProducer implements IDelayOrder {
 			message.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY, expireTime);
 //			message.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY, delay);
 //			message.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_PERIOD, period);
-//			message.setIntProperty(ScheduledMessage.AMQ_SCHEDULED_REPEAT, repeat);
+//			message.setIntProperty(ScheduledMessage.AMQ_SCHEDULED_REPEAT, repeat); //重复投递几次
 //			也可使用 CRON 表达式，如
 // 			message.setStringProperty(ScheduledMessage.AMQ_SCHEDULED_CRON, "0 * * * *");
 			return message;

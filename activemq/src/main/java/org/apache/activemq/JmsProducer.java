@@ -10,9 +10,8 @@ public class JmsProducer {
     private static final String PASSWORD
             = ActiveMQConnection.DEFAULT_PASSWORD;
     /* 默认连接地址*/
-    private static final String BROKEURL
-            = ActiveMQConnection.DEFAULT_BROKER_URL;
-
+//    private static final String BROKEURL = ActiveMQConnection.DEFAULT_BROKER_URL;
+    private static final String BROKEURL="failover:(tcp://localhost:61616,tcp://localhost:61617,tcp://localhost:61618)?randomize=false";
     /**
      * 1、创建连接工厂
      * 2、通过连接工厂创建一个连接并启动这个连接
